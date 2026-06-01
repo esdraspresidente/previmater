@@ -1,0 +1,177 @@
+name: Notificação Dominical — Semana
+
+on:
+  schedule:
+    - cron: '0 21 * * 0'  # Domingo 18h BRT (21h UTC)
+  workflow_dispatch:        # Permite rodar manualmente para testar
+
+jobs:
+  enviar-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Buscar parcelas e enviar e-mail
+        env:
+          RESEND_KEY: ${{ secrets.RESEND_KEY }}
+        run: |
+          node << 'EOF'
+          const https = require('https');
+
+          const SB_URL = 'https://ggyngtqknonwnohbzkyj.supabase.co';
+          const SB_KEY = 'sb_publishable_WJOo1uEpdSXTPoPDlErTJw_vPSe5x1S';
+          const RESEND_KEY = process.env.RESEND_KEY;
+          const DEST = 'esdraspresidente@gmail.com';
+
+          function fDate(s) {
+            if (!s) return '—';
+            const [y, m, d] = s.split('-');
+            return `${d}/${m}/${y}`;
+          }
+          function fBRL(v) {
+            return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          }
+          function addDays(dateStr, n) {
+            const d = new Date(dateStr + 'T12:00:00');
+            d.setDate(d.getDate() + n);
+            return d.toISOString().split('T')[0];
+          }
+          function today() {
+            return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+          }
+
+          function fetch(url, opts) {
+            return new Promise((resolve, reject) => {
+              const u = new URL(url);
+              const req = https.request({
+                hostname: u.hostname, path: u.pathname + u.search,
+                method: opts.method || 'GET', headers: opts.headers || {}
+              }, res => {
+                let data = '';
+                res.on('data', c => data += c);
+                res.on('end', () => resolve({ ok: res.statusCode < 300, json: () => JSON.parse(data), text: () => data, status: res.statusCode }));
+              });
+              req.on('error', reject);
+              if (opts.body) req.write(opts.body);
+              req.end();
+            });
+          }
+
+          async function main() {
+            const inicio = today();
+            const fim = addDays(inicio, 6);
+
+            // Busca parcelas da semana (previsto ou atrasado)
+            const url = `${SB_URL}/rest/v1/pm_parcelas?select=*,pm_clientes(whatsapp,trello_url)&data_vencimento=gte.${inicio}&data_vencimento=lte.${fim}&status=neq.cancelado&status=neq.recebido&order=data_vencimento.asc`;
+            const res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+            const parcelas = await res.json();
+
+            if (!parcelas.length) {
+              console.log('Nenhuma parcela esta semana. Email não enviado.');
+              return;
+            }
+
+            // Agrupa por data
+            const porData = {};
+            for (const p of parcelas) {
+              if (!porData[p.data_vencimento]) porData[p.data_vencimento] = [];
+              porData[p.data_vencimento].push(p);
+            }
+
+            const totalSemana = parcelas.reduce((s, p) => s + parseFloat(p.valor_honorario || 0), 0);
+
+            // Gera cards HTML
+            let cardsHtml = '';
+            for (const data of Object.keys(porData).sort()) {
+              const dia = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+              const totalDia = porData[data].reduce((s, p) => s + parseFloat(p.valor_honorario || 0), 0);
+              cardsHtml += `
+                <div style="margin-bottom:24px">
+                  <div style="font-size:13px;font-weight:700;color:#0A9396;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #E0F4F5">
+                    ${dia} · ${fBRL(totalDia)}
+                  </div>
+                  ${porData[data].map(p => cardHtml(p)).join('')}
+                </div>`;
+            }
+
+            function cardHtml(p) {
+              const cli = p.pm_clientes || {};
+              const wa = cli.whatsapp ? `https://wa.me/55${cli.whatsapp.replace(/\D/g, '')}` : null;
+              const tr = cli.trello_url || null;
+              const avatarLetter = (p.cliente_nome || '?').charAt(0).toUpperCase();
+              const status = p.status === 'atrasado' || p.data_vencimento < today() ? 'ATRASADO' : 'PREVISTO';
+              const statusColor = status === 'ATRASADO' ? '#C0392B' : '#B06000';
+              const statusBg = status === 'ATRASADO' ? '#FDECEA' : '#FEF3E0';
+              return `
+                <div style="background:#fff;border:1px solid #D4EBEB;border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px">
+                  <div style="width:44px;height:44px;border-radius:50%;background:#0A9396;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0">${avatarLetter}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:15px;font-weight:700;color:#0D2B2B;margin-bottom:4px">${p.cliente_nome}</div>
+                    <div style="font-size:12px;color:#7FA8A8;margin-bottom:8px">Parcela ${p.num_parcela}/${p.total_parcelas} · Vence ${fDate(p.data_vencimento)}</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      ${wa ? `<a href="${wa}" style="display:inline-flex;align-items:center;gap:5px;background:#E0F5EE;color:#0A7A5C;padding:5px 12px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:700">💬 WhatsApp</a>` : ''}
+                      ${tr ? `<a href="${tr}" style="display:inline-flex;align-items:center;gap:5px;background:#EDF2FC;color:#1D4ED8;padding:5px 12px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:700">📋 Trello</a>` : ''}
+                    </div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    <div style="font-size:18px;font-weight:800;color:#0D2B2B">${fBRL(p.valor_honorario)}</div>
+                    <div style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${statusBg};color:${statusColor};margin-top:5px;display:inline-block">${status}</div>
+                  </div>
+                </div>`;
+            }
+
+            const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#EFF7F7;font-family:'Helvetica Neue',Arial,sans-serif">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0A9396,#00B4D8);border-radius:16px;padding:24px;margin-bottom:20px;text-align:center">
+      <div style="font-size:28px;margin-bottom:6px">⚖️</div>
+      <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.3px">PreviMater</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px">Resumo da Semana</div>
+    </div>
+
+    <!-- Resumo -->
+    <div style="background:#fff;border:1px solid #D4EBEB;border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
+      <div style="font-size:12px;font-weight:700;color:#7FA8A8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Total Previsto na Semana</div>
+      <div style="font-size:32px;font-weight:800;color:#0A9396;letter-spacing:-.5px">${fBRL(totalSemana)}</div>
+      <div style="font-size:13px;color:#7FA8A8;margin-top:6px">${parcelas.length} parcela${parcelas.length > 1 ? 's' : ''} · ${fDate(inicio)} a ${fDate(fim)}</div>
+    </div>
+
+    <!-- Cards por dia -->
+    <div style="background:#fff;border:1px solid #D4EBEB;border-radius:14px;padding:20px;margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:#0D2B2B;margin-bottom:16px">📅 Parcelas da Semana</div>
+      ${cardsHtml}
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;padding:16px">
+      <a href="https://esdraspresidente.github.io/previmater" style="display:inline-block;background:linear-gradient(135deg,#0A9396,#00B4D8);color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Abrir PreviMater →</a>
+      <div style="font-size:11px;color:#7FA8A8;margin-top:12px">PreviMater · Gestão de Recebimentos</div>
+    </div>
+
+  </div>
+</body>
+</html>`;
+
+            // Envia via Resend
+            const body = JSON.stringify({
+              from: 'PreviMater <onboarding@resend.dev>',
+              to: [DEST],
+              subject: `📅 PreviMater — Semana de ${fDate(inicio)} a ${fDate(fim)} · ${fBRL(totalSemana)}`,
+              html
+            });
+
+            const r = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+              body
+            });
+            const result = await r.json();
+            if (r.ok) console.log('Email enviado!', result.id);
+            else { console.error('Erro:', result); process.exit(1); }
+          }
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          EOF
