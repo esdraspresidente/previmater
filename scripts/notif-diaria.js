@@ -123,7 +123,7 @@ async function main() {
       '<div style="font-size:14px;font-weight:700;color:#0D2B2B;margin-bottom:14px">&#x1F4B0; Receber hoje</div>',
       'Recebimentos de Hoje', 'Hoje &middot; ' + fDate(dataHoje), fBRL(total), '#0A9396', cards
     );
-    await enviaEmail('&#x1F4B0; PreviMater — Hoje ' + fDate(dataHoje) + ' · ' + fBRL(total), html);
+    await enviaEmail('💰 PreviMater — Hoje ' + fDate(dataHoje) + ' · ' + fBRL(total), html);
   } else {
     console.log('Nenhuma parcela hoje, email não enviado.');
   }
@@ -135,7 +135,7 @@ async function main() {
       '<div style="font-size:14px;font-weight:700;color:#0D2B2B;margin-bottom:14px">&#x1F4CB; Receber amanhã</div>',
       'Aviso de Amanhã', 'Amanhã &middot; ' + fDate(dataAmanha), fBRL(total), '#B06000', cards
     );
-    await enviaEmail('&#x1F4CB; PreviMater — Amanhã ' + fDate(dataAmanha) + ' · ' + fBRL(total), html);
+    await enviaEmail('📋 PreviMater — Amanhã ' + fDate(dataAmanha) + ' · ' + fBRL(total), html);
   } else {
     console.log('Nenhuma parcela amanhã, email não enviado.');
   }
