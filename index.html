@@ -632,13 +632,13 @@ function renderDash(){
   $('datrs').innerHTML=atrs.length?`<div class="aw"><div class="at">⚠ Parcelas Atrasadas (${atrs.length})</div><div class="card">${atrs.map(p=>`
     <div class="lr"><div class="av" style="background:${avC(p.cliente_nome)};width:36px;height:36px;font-size:14px">${avL(p.cliente_nome)}</div>
     <div style="flex:1;min-width:0"><div class="rn">${p.cliente_nome}</div><div class="rm" style="color:var(--red)">Venceu em ${fD(p.data_vencimento)} — ${dAtr(p.data_vencimento)} dias atrás</div></div>
-    <div class="rr"><div class="rv rd">${R(p.valor_honorario)}</div><div style="display:flex;gap:4px;margin-top:4px"><button class="bic bg" onclick="abreMRec('${p.id}')">✓</button><button class="bic bp2" onclick="marcaInad('${p.id}')">⚑</button></div></div></div>`).join('')}</div></div>`:'';
+    <div class="rr"><div class="rv rd">${R(p.valor_honorario)}</div>${p.valor_cliente&&parseFloat(p.valor_cliente)>0?`<div style="font-size:10px;color:var(--text3);margin-top:2px">Cliente: ${R(p.valor_cliente)}</div>`:''}<div style="display:flex;gap:4px;margin-top:4px"><button class="bic bg" onclick="abreMRec('${p.id}')">✓</button><button class="bic bp2" onclick="marcaInad('${p.id}')">⚑</button></div></div></div>`).join('')}</div></div>`:'';
   const prox=PARC.filter(p=>stD(p)==='previsto'&&p.data_vencimento>=fISO(today())).sort((a,b)=>a.data_vencimento.localeCompare(b.data_vencimento)).slice(0,8);
   $('dprox').innerHTML=prox.length?prox.map(p=>{
     const d=dVenc(p.data_vencimento);
     const db=d===0?`<span class="dh">hoje</span>`:d<=3?`<span class="dh">em ${d}d</span>`:d<=7?`<span class="dw">em ${d}d</span>`:`<span class="dn">em ${d}d</span>`;
     return`<div class="lr"><div class="av" style="background:${avC(p.cliente_nome)};width:36px;height:36px;font-size:14px">${avL(p.cliente_nome)}</div>
-    <div style="flex:1;min-width:0"><div class="rn">${p.cliente_nome}</div><div class="rm">Parcela ${p.num_parcela}/${p.total_parcelas} — ${fD(p.data_vencimento)}${db}</div></div>
+    <div style="flex:1;min-width:0"><div class="rn">${p.cliente_nome}</div><div class="rm">Parcela ${p.num_parcela}/${p.total_parcelas} — ${fD(p.data_vencimento)}${db}${p.valor_cliente&&parseFloat(p.valor_cliente)>0?` · <span style="color:var(--green);font-weight:600">Cliente: ${R(p.valor_cliente)}</span>`:''}</div></div>
     <div class="rr"><div class="rv">${R(p.valor_honorario)}</div>${bdg('previsto')}</div></div>`;
   }).join(''):`<div class="emp"><div class="empi">✅</div><div class="empt">Tudo em dia!</div><div style="font-size:12px;color:var(--text3)">Nenhum recebimento previsto pendente.</div></div>`;
 }
@@ -710,7 +710,7 @@ function renderLista(){
     const rid=c.ps[0]?.recebimento_id;
     const ph=c.ps.map(p=>{
       const s=stD(p);
-      const vc=p.valor_cliente?`<span> · Cliente: ${R(p.valor_cliente)}</span>`:'';
+      const vc=p.valor_cliente&&parseFloat(p.valor_cliente)>0?`<span style="color:var(--green);font-weight:600"> · Cliente: ${R(p.valor_cliente)}</span>`:'';
       const ac=s!=='recebido'&&s!=='cancelado'?`
         <button class="bic bg" title="Recebido" onclick="abreMRec('${p.id}')">✓</button>
         ${s==='atrasado'?`<button class="bic bp2" title="Inadimplente" onclick="marcaInad('${p.id}')">⚑</button>`:''}
@@ -741,7 +741,7 @@ function renderMDia(iso){
   if(!ps.length){$('mdiac').innerHTML=`<div class="emp" style="padding:20px"><div style="font-size:12px;color:var(--text3)">Sem parcelas.</div></div>`;return;}
   $('mdiac').innerHTML=ps.map(p=>{
     const s=stD(p);
-    const vc=p.valor_cliente?`<div style="font-size:11px;color:var(--text3);margin-top:2px">Cliente recebe: ${R(p.valor_cliente)}</div>`:'';
+    const vc=p.valor_cliente&&parseFloat(p.valor_cliente)>0?`<div style="font-size:12px;color:var(--green);font-weight:600;margin-top:3px">Cliente recebe: ${R(p.valor_cliente)}</div>`:'';
     const ac=s!=='recebido'&&s!=='cancelado'?`<div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn btnp" style="font-size:11px;padding:7px 12px" onclick="abreMRec('${p.id}')">✓ Marcar Recebido</button>
       ${s==='atrasado'?`<button class="btn" style="font-size:11px;padding:7px 12px;background:var(--red-bg);color:var(--red);border:1.5px solid #FECACA" onclick="marcaInad('${p.id}')">⚑ Inadimplente</button>`:''}
