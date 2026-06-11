@@ -405,7 +405,7 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
           <div class="fst">3. Valores</div>
           <div class="fg">
             <div class="fld"><label>Valor que o Cliente Recebe (R$) *</label><input type="number" id="fvc" placeholder="0,00" step="0.01" oninput="recalc()"/></div>
-            <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option></select></div>
+            <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option></select></div>
           </div>
           <div class="hr"></div>
           <div class="fst" style="margin:0 0 12px">Honorários</div>
@@ -851,23 +851,73 @@ function recalc(){
   $('cbruto').textContent=R(br);$('cdesc').textContent=`- ${R(fd)}`;$('cliq').textContent=R(liq);
   const ind=parseFloat($('findvl')?.value)||0;
   $('cliq2').textContent=R(liq);$('ccom').textContent=`- ${R(ind)}`;$('csob').textContent=R(Math.max(0,liq-ind));
-  geraParcs();
+  if(fParcs.length){recalcHonorarios();}else{geraParcs();}
 }
 function geraParcs(){
-  const n=parseInt($('fnp')?.value)||1,vc=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30,fd=parseFloat($('ffd')?.value)||0;
-  const liq=Math.max(0,vc*(fp/100)-fd),hoje=fISO(today());
-  if(!fParcs.length||fParcs.length!==n){fParcs=[];for(let i=0;i<n;i++){const dt=new Date(hoje);dt.setMonth(dt.getMonth()+i);fParcs.push({data:fISO(dt),hon:liq/n,cli:0});}}
-  else fParcs.forEach(p=>p.hon=liq/n);
+  const n=parseInt($('fnp')?.value)||1,vc=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30;
+  const hoje=fISO(today());
+  if(!fParcs.length||fParcs.length!==n){
+    const old=fParcs;fParcs=[];
+    for(let i=0;i<n;i++){
+      let dt;
+      if(old[0]?.data){dt=new Date(old[0].data+'T12:00:00');dt.setMonth(dt.getMonth()+i);}
+      else{dt=new Date(hoje);dt.setMonth(dt.getMonth()+i);}
+      const cli=old[i]?.cli||0;
+      const fd=old[i]?.fd||0;
+      fParcs.push({data:fISO(dt),cli:cli,fd:fd});
+    }
+  }
+  recalcHonorarios();
+}
+function recalcHonorarios(){
+  const n=fParcs.length,vcTotal=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30;
+  // Última parcela = resto do total
+  if(n>1){
+    const somaAnteriores=fParcs.slice(0,n-1).reduce((s,p)=>s+(parseFloat(p.cli)||0),0);
+    fParcs[n-1].cli=Math.max(0,vcTotal-somaAnteriores);
+  } else if(n===1){
+    fParcs[0].cli=vcTotal;
+  }
+  // Honorário de cada parcela = cli * fp% - desconto da parcela
+  fParcs.forEach(p=>{
+    const cli=parseFloat(p.cli)||0,fd=parseFloat(p.fd)||0;
+    p.hon=Math.max(0,cli*(fp/100)-fd);
+  });
+  renderParcsForm();
+}
+function renderParcsForm(){
+  const n=fParcs.length;
   const cont=$('parcsform');if(!cont)return;
   cont.innerHTML=fParcs.map((p,i)=>`<div class="pfc">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="pfn">${i+1}</div><div style="font-size:13px;font-weight:700">Parcela ${i+1}/${n}</div>${i===0?`<span class="ti">Valor do INSS</span>`:`<span class="te">Estimativa</span>`}</div>
     <div class="fg">
       <div class="fld"><label>Data de Vencimento</label><input type="date" id="fpd${i}" value="${p.data}" onchange="upP(${i},'d',this.value)"/></div>
-      <div class="fld"><label>Valor Honorário (R$)</label><input type="number" id="fph${i}" value="${p.hon.toFixed(2)}" step="0.01" onchange="upP(${i},'h',this.value)"/></div>
-      <div class="fld ff"><label>Valor que o Cliente Recebe (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="number" id="fpc${i}" value="${p.cli||''}" step="0.01" placeholder="Quanto o INSS paga ao cliente nesta parcela" onchange="upP(${i},'c',this.value)"/></div>
+      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="fpc${i}" value="${(p.cli||0).toFixed(2)}" step="0.01" placeholder="Quanto o INSS paga ao cliente" onchange="upP(${i},'c',this.value)" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
+      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="number" id="fpfd${i}" value="${(p.fd||0)||''}" step="0.01" placeholder="0,00" onchange="upP(${i},'fd',this.value)"/></div>
+      <div class="fld"><label>Valor Honorário (R$)</label><input type="number" id="fph${i}" value="${p.hon.toFixed(2)}" step="0.01" onchange="upP(${i},'h',this.value)"/><span style="font-size:10px;color:var(--text3)">${(parseFloat($('ffp').value)||30)}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}</span></div>
     </div></div>`).join('');
 }
-function upP(i,c,v){if(c==='d')fParcs[i].data=v;if(c==='h')fParcs[i].hon=parseFloat(v)||0;if(c==='c')fParcs[i].cli=parseFloat(v)||0;}
+function upP(i,c,v){
+  if(c==='d'){
+    fParcs[i].data=v;
+    // Cascata: se for a parcela 0, recalcula as datas seguintes como +1,+2,... meses
+    if(i===0){
+      const base=new Date(v+'T12:00:00');
+      for(let j=1;j<fParcs.length;j++){const dt=new Date(base);dt.setMonth(dt.getMonth()+j);fParcs[j].data=fISO(dt);}
+      renderParcsForm();
+    }
+  }
+  if(c==='h')fParcs[i].hon=parseFloat(v)||0;
+  if(c==='fd'){fParcs[i].fd=parseFloat(v)||0;recalcHonorarios();return;}
+  if(c==='c'){
+    fParcs[i].cli=parseFloat(v)||0;
+    // Cascata: se for a parcela 1 (índice 1), replica o valor para as parcelas intermediárias 2..n-2
+    if(i===1){
+      for(let j=2;j<fParcs.length-1;j++){fParcs[j].cli=fParcs[1].cli;}
+    }
+    recalcHonorarios();
+  }
+}
 async function submitRec(){
   if(!fCliId){toast('Selecione um cliente.','er');return;}
   const vc=parseFloat($('fvc').value)||0;if(!vc){toast('Informe o valor do cliente.','er');return;}
