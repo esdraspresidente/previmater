@@ -472,8 +472,12 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01"/></div>
-    <div class="fld" style="margin-bottom:18px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fg" style="margin-bottom:11px">
+      <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="number" id="mepfd" step="0.01" value="0" oninput="recalcEP()"/></div>
+    </div>
+    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
   </div>
 </div>
@@ -505,7 +509,7 @@ const SB=(()=>{
       order(c,{ascending=true}={}){oc=c;oa=ascending;return this;},
       limit(n){lm=n;return this;},
       async insert(rows){const b=Array.isArray(rows)?rows[0]:rows;const r=await fetch(U+'/rest/v1/'+t,{method:'POST',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(b)});const d=await r.json();return r.ok?{data:d,error:null}:{data:null,error:d};},
-      update(obj){const f2=[];return{eq(c,v){f2.push({c,v});return this;},async then(res){const qs='?'+f2.map(x=>`${x.c}=eq.${encodeURIComponent(x.v)}`).join('&');const r=await fetch(U+'/rest/v1/'+t+qs,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(obj)});const d=await r.json();res(r.ok?{data:d,error:null}:{data:null,error:d});}};},
+      update(obj){const f2=[];return{eq(c,v){f2.push({c,v});return this;},async then(res){try{const qs='?'+f2.map(x=>`${x.c}=eq.${encodeURIComponent(x.v)}`).join('&');const r=await fetch(U+'/rest/v1/'+t+qs,{method:'PATCH',headers:{...H(),'Prefer':'return=representation'},body:JSON.stringify(obj)});let d=null;try{const txt=await r.text();d=txt?JSON.parse(txt):null;}catch(e){d={message:'Resposta inválida do servidor'};}res(r.ok?{data:d,error:null}:{data:null,error:d||{message:'Erro HTTP '+r.status}});}catch(e){res({data:null,error:{message:e.message||'Falha de rede'}});}}};},
       delete(){const f2=[];return{eq(c,v){f2.push({c,v});return this;},async then(res){const qs='?'+f2.map(x=>`${x.c}=eq.${encodeURIComponent(x.v)}`).join('&');const r=await fetch(U+'/rest/v1/'+t+qs,{method:'DELETE',headers:H()});res(r.ok?{error:null}:{error:await r.json()});}};},
       async then(res){let qs='?select=*';ff.forEach(f=>{if(f.op==='eq')qs+=`&${f.c}=eq.${encodeURIComponent(f.v)}`;if(f.op==='in')qs+=`&${f.c}=in.(${f.v.join(',')})`;});if(oc)qs+=`&order=${oc}.${oa?'asc':'desc'}`;if(lm)qs+=`&limit=${lm}`;const r=await fetch(U+'/rest/v1/'+t+qs,{headers:H()});const d=await r.json();res(r.ok?{data:d,error:null}:{data:null,error:d});}
     };
@@ -790,8 +794,18 @@ function abreMEP(pid){
   const p=PARC.find(x=>x.id==pid);if(!p)return;
   mparcId=pid;$('mept').textContent=`Editar Parcela ${p.num_parcela}/${p.total_parcelas}`;
   $('meps').textContent=p.cliente_nome;$('mepd').value=p.data_vencimento;
-  $('meph').value=parseFloat(p.valor_honorario||0).toFixed(2);$('mepc').value=parseFloat(p.valor_cliente||0).toFixed(2);
+  $('mepc').value=parseFloat(p.valor_cliente||0).toFixed(2);
+  $('meph').value=parseFloat(p.valor_honorario||0).toFixed(2);
+  // Tenta achar o percentual do recebimento vinculado
+  const rec=REC.find(r=>r.id==p.recebimento_id);
+  $('mepp').value=rec?.fee_percent||30;
+  $('mepfd').value=0;
   $('movo').classList.remove('h');$('mepar').classList.remove('h');
+}
+function recalcEP(){
+  const vc=parseFloat($('mepc').value)||0,fp=parseFloat($('mepp').value)||30,fd=parseFloat($('mepfd').value)||0;
+  const hon=Math.max(0,vc*(fp/100)-fd);
+  $('meph').value=hon.toFixed(2);
 }
 async function salvaEP(){
   const data=$('mepd').value,hon=parseFloat($('meph').value)||0,vc=parseFloat($('mepc').value)||0;
@@ -799,7 +813,7 @@ async function salvaEP(){
   const btn=document.querySelector('#mepar .btnp');btn.textContent='Salvando...';btn.disabled=true;
   const{error}=await SB.from('pm_parcelas').update({data_vencimento:data,valor_honorario:hon,valor_cliente:vc}).eq('id',mparcId);
   btn.disabled=false;btn.textContent='Salvar';
-  if(error){toast('Erro.','er');return;}
+  if(error){console.error('Erro ao salvar parcela:',error);toast(error.message||error.hint||'Erro ao salvar.','er');return;}
   toast('Parcela atualizada!');fechaM();await loadAll();
   if($('page-recebimentos').classList.contains('a'))renderRec();renderDash();
 }
