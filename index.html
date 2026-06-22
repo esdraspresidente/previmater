@@ -325,9 +325,9 @@ function applyMoneyMask(input){
   parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');
   input.value=parts[0]+','+parts[1];
 }
-// formatação monetária via onblur inline nos inputs
+// formatação monetária: aplica máscara somente ao sair do campo (focusout), nunca durante digitação
 document.addEventListener('DOMContentLoaded',()=>{
-  document.body.addEventListener('input',e=>{
+  document.body.addEventListener('focusout',e=>{
     if(e.target.dataset&&e.target.dataset.money!==undefined) applyMoneyMask(e.target);
   });
 });
@@ -511,10 +511,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" placeholder="0,00" data-money="" inputmode="decimal" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" placeholder="0,00" data-money="" inputmode="decimal" oninput="recalcEP()" onblur="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
     <div class="fg" style="margin-bottom:11px">
       <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
-      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" value="0" data-money="" inputmode="decimal" oninput="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" value="0" data-money="" inputmode="decimal" oninput="recalcEP()" onblur="recalcEP()"/></div>
     </div>
     <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="text" id="meph" data-money="" inputmode="decimal" onblur="applyMoneyMask(this)"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
@@ -911,7 +911,7 @@ function recalc(){
   if(fParcs.length){recalcHonorarios();}else{geraParcs();}
 }
 function geraParcs(){
-  const n=parseInt($('fnp')?.value)||1,vc=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30;
+  const n=parseInt($('fnp')?.value)||1,vc=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30;
   const hoje=fISO(today());
   if(!fParcs.length||fParcs.length!==n){
     const old=fParcs;fParcs=[];
