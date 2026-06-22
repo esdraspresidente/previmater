@@ -923,19 +923,37 @@ function geraParcs(){
 }
 function recalcHonorarios(){
   const n=fParcs.length,vcTotal=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30;
-  // Última parcela = resto do total
   if(n>1){
     const somaAnteriores=fParcs.slice(0,n-1).reduce((s,p)=>s+(parseFloat(p.cli)||0),0);
     fParcs[n-1].cli=Math.max(0,vcTotal-somaAnteriores);
   } else if(n===1){
     fParcs[0].cli=vcTotal;
   }
-  // Honorário de cada parcela = cli * fp% - desconto da parcela
   fParcs.forEach(p=>{
     const cli=parseFloat(p.cli)||0,fd=parseFloat(p.fd)||0;
     p.hon=Math.max(0,cli*(fp/100)-fd);
   });
-  renderParcsForm();
+  updateParcsCalc();
+}
+function updateParcsCalc(){
+  const n=fParcs.length;
+  const fp=parseFloat($('ffp')?.value)||30;
+  const fmt=v=>v>0?(v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):'';
+  fParcs.forEach((p,i)=>{
+    const hf=$('fph'+i);
+    if(hf){
+      hf.value=fmt(p.hon);
+      const sp=hf.nextElementSibling;
+      if(sp)sp.textContent=`${fp}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}`;
+    }
+    const isLast=(i===n-1&&n>1);
+    const isSingle=(n===1);
+    const isMiddle=(i>=2&&i<n-1);
+    if(isLast||isSingle||isMiddle){
+      const cf=$('fpc'+i);
+      if(cf)cf.value=fmt(p.cli);
+    }
+  });
 }
 function renderParcsForm(){
   const n=fParcs.length;
@@ -944,8 +962,8 @@ function renderParcsForm(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="pfn">${i+1}</div><div style="font-size:13px;font-weight:700">Parcela ${i+1}/${n}</div>${i===0?`<span class="ti">Valor do INSS</span>`:`<span class="te">Estimativa</span>`}</div>
     <div class="fg">
       <div class="fld"><label>Data de Vencimento</label><input type="date" id="fpd${i}" value="${p.data}" onchange="upP(${i},'d',this.value)"/></div>
-      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="fpc${i}" value="${p.cli>0?((p.cli).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="Quanto o INSS paga ao cliente" data-money="" inputmode="decimal" oninput="upP(${i},'c',moneyToFloat(this))" onchange="upP(${i},'c',moneyToFloat(this))" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
-      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="text" id="fpfd${i}" value="${p.fd>0?((p.fd).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="0,00" data-money="" inputmode="decimal" oninput="upP(${i},'fd',moneyToFloat(this))" onchange="upP(${i},'fd',moneyToFloat(this))"/></div>
+      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="fpc${i}" value="${p.cli>0?((p.cli).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="Quanto o INSS paga ao cliente" data-money="" inputmode="decimal" oninput="moneyMaskInput(this);upP(${i},'c',moneyToFloat(this))" onchange="upP(${i},'c',moneyToFloat(this))" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
+      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="text" id="fpfd${i}" value="${p.fd>0?((p.fd).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="0,00" data-money="" inputmode="decimal" oninput="moneyMaskInput(this);upP(${i},'fd',moneyToFloat(this))" onchange="upP(${i},'fd',moneyToFloat(this))"/></div>
       <div class="fld"><label>Valor Honorário (R$)</label><input type="text" inputmode="decimal" id="fph${i}" value="${p.hon>0?((p.hon).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" step="0.01" onchange="upP(${i},'h',this.value)"/><span style="font-size:10px;color:var(--text3)">${(parseFloat($('ffp').value)||30)}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}</span></div>
     </div></div>`).join('');
 }
