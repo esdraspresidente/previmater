@@ -294,20 +294,23 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
 .csel{background:var(--teal-l);border:1.5px solid var(--teal-m);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
 </style>
 <script>
-// Máscara monetária — aplica em todos os inputs com data-money
+// Máscara monetária — inputs com data-money (type="text", inputmode="decimal")
 function applyMoneyMask(input){
+  // Pega só os dígitos
   let v=input.value.replace(/\D/g,'');
   if(!v){input.value='';return;}
-  v=(parseInt(v)/100).toFixed(2);
-  input.value=v.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  // Salva posição do cursor para não pular
+  const digits=(parseInt(v,10)/100).toFixed(2);
+  input.value=digits.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 }
 function moneyToFloat(input){
+  if(!input) return 0;
   const v=(input.value||'').replace(/\./g,'').replace(',','.');
   return parseFloat(v)||0;
 }
 document.addEventListener('DOMContentLoaded',()=>{
   document.body.addEventListener('input',e=>{
-    if(e.target.dataset.money!==undefined) applyMoneyMask(e.target);
+    if(e.target.dataset&&e.target.dataset.money!==undefined) applyMoneyMask(e.target);
   });
 });
 </script>
@@ -422,11 +425,11 @@ document.addEventListener('DOMContentLoaded',()=>{
         <div class="fs">
           <div class="fst">3. Valores</div>
           <div class="fg" style="grid-template-columns:2fr 1fr 1fr" id="fg-valores">
-            <div class="fld"><label>Valor que o Cliente Recebe (R$) *</label><input type="number" id="fvc" data-money="" placeholder="0,00" step="0.01" oninput="recalc()"/></div>
+            <div class="fld"><label>Valor que o Cliente Recebe (R$) *</label><input type="text" id="fvc" data-money="" inputmode="decimal" placeholder="0,00" oninput="recalc()"/></div>
             <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option></select></div>
             <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="ffp" value="30" step="0.5" oninput="recalc()"/></div>
           </div>
-          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="number" id="ffd" data-money="" value="0" step="0.01" oninput="recalc()"/></div>
+          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="text" id="ffd" data-money="" inputmode="decimal" value="0" oninput="recalc()"/></div>
           <div class="cb" id="cb-resumo" style="display:none"><div class="cr2"><span>Honorários Brutos</span><span id="cbruto" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Desconto</span><span id="cdesc" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq">R$ 0,00</span></div></div>
           <div class="cb" id="cb-resumo-simples" style="margin-top:13px"><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq-s">R$ 0,00</span></div></div>
           <div class="hr"></div>
@@ -435,7 +438,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="find" onchange="togInd()" style="width:auto"/><span style="font-size:12px;color:var(--text2);font-weight:600">Tem indicação?</span></label>
           </div>
           <div id="iarea" style="display:none">
-            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="number" id="findvl" data-money="" value="200" step="0.01" oninput="recalc()"/></div></div>
+            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="text" id="findvl" data-money="" inputmode="decimal" value="200" oninput="recalc()"/></div></div>
             <div class="cb" style="margin-top:8px"><div class="cr2"><span>Honorários Líquidos</span><span id="cliq2" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Comissão Indicação</span><span id="ccom" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Sobra Líquida</span><span id="csob">R$ 0,00</span></div></div>
           </div>
         </div>
@@ -490,12 +493,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00" data-money="" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" placeholder="0,00" data-money="" inputmode="decimal" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
     <div class="fg" style="margin-bottom:11px">
       <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
-      <div class="fld"><label>Desconto (R$)</label><input type="number" id="mepfd" step="0.01" value="0" data-money="" oninput="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" value="0" data-money="" inputmode="decimal" oninput="recalcEP()"/></div>
     </div>
-    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01" data-money=""/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
+    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="text" id="meph" data-money="" inputmode="decimal"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
   </div>
 </div>
@@ -926,9 +929,9 @@ function renderParcsForm(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="pfn">${i+1}</div><div style="font-size:13px;font-weight:700">Parcela ${i+1}/${n}</div>${i===0?`<span class="ti">Valor do INSS</span>`:`<span class="te">Estimativa</span>`}</div>
     <div class="fg">
       <div class="fld"><label>Data de Vencimento</label><input type="date" id="fpd${i}" value="${p.data}" onchange="upP(${i},'d',this.value)"/></div>
-      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="fpc${i}" value="${(p.cli||0).toFixed(2)}" step="0.01" placeholder="Quanto o INSS paga ao cliente" data-money="" oninput="upP(${i},'c',moneyToFloat(this))" onchange="upP(${i},'c',moneyToFloat(this))" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
-      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="number" id="fpfd${i}" value="${(p.fd||0)||''}" step="0.01" placeholder="0,00" data-money="" oninput="upP(${i},'fd',moneyToFloat(this))" onchange="upP(${i},'fd',moneyToFloat(this))"/></div>
-      <div class="fld"><label>Valor Honorário (R$)</label><input type="number" id="fph${i}" value="${p.hon.toFixed(2)}" step="0.01" onchange="upP(${i},'h',this.value)"/><span style="font-size:10px;color:var(--text3)">${(parseFloat($('ffp').value)||30)}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}</span></div>
+      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="fpc${i}" value="${p.cli>0?((p.cli).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="Quanto o INSS paga ao cliente" data-money="" inputmode="decimal" oninput="upP(${i},'c',moneyToFloat(this))" onchange="upP(${i},'c',moneyToFloat(this))" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
+      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="text" id="fpfd${i}" value="${p.fd>0?((p.fd).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" placeholder="0,00" data-money="" inputmode="decimal" oninput="upP(${i},'fd',moneyToFloat(this))" onchange="upP(${i},'fd',moneyToFloat(this))"/></div>
+      <div class="fld"><label>Valor Honorário (R$)</label><input type="text" inputmode="decimal" id="fph${i}" value="${p.hon>0?((p.hon).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):''}" step="0.01" onchange="upP(${i},'h',this.value)"/><span style="font-size:10px;color:var(--text3)">${(parseFloat($('ffp').value)||30)}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}</span></div>
     </div></div>`).join('');
 }
 function upP(i,c,v){
@@ -941,7 +944,7 @@ function upP(i,c,v){
       renderParcsForm();
     }
   }
-  if(c==='h')fParcs[i].hon=parseFloat(v)||0;
+  if(c==='h')fParcs[i].hon=typeof v==='number'?v:(parseFloat((v||'').replace(/\./g,'').replace(',','.'))||0);
   if(c==='fd'){fParcs[i].fd=parseFloat(v)||0;recalcHonorarios();return;}
   if(c==='c'){
     fParcs[i].cli=parseFloat(v)||0;
