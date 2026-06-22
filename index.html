@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option></select></div>
             <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="ffp" value="30" step="0.5" oninput="recalc()"/></div>
           </div>
-          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="text" id="ffd" data-money="" inputmode="decimal" value="0" oninput="recalc()"/></div>
+          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="text" id="ffd" data-money="" inputmode="decimal" placeholder="0,00" oninput="recalc()"/></div>
           <div class="cb" id="cb-resumo" style="display:none"><div class="cr2"><span>Honorários Brutos</span><span id="cbruto" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Desconto</span><span id="cdesc" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq">R$ 0,00</span></div></div>
           <div class="cb" id="cb-resumo-simples" style="margin-top:13px"><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq-s">R$ 0,00</span></div></div>
           <div class="hr"></div>
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="find" onchange="togInd()" style="width:auto"/><span style="font-size:12px;color:var(--text2);font-weight:600">Tem indicação?</span></label>
           </div>
           <div id="iarea" style="display:none">
-            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="text" id="findvl" data-money="" inputmode="decimal" value="200" oninput="recalc()"/></div></div>
+            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="text" id="findvl" data-money="" inputmode="decimal" placeholder="0,00" oninput="recalc()"/></div></div>
             <div class="cb" style="margin-top:8px"><div class="cr2"><span>Honorários Líquidos</span><span id="cliq2" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Comissão Indicação</span><span id="ccom" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Sobra Líquida</span><span id="csob">R$ 0,00</span></div></div>
           </div>
         </div>
@@ -815,8 +815,9 @@ function abreMEP(pid){
   const p=PARC.find(x=>x.id==pid);if(!p)return;
   mparcId=pid;$('mept').textContent=`Editar Parcela ${p.num_parcela}/${p.total_parcelas}`;
   $('meps').textContent=p.cliente_nome;$('mepd').value=p.data_vencimento;
-  $('mepc').value=parseFloat(p.valor_cliente||0).toFixed(2);
-  $('meph').value=parseFloat(p.valor_honorario||0).toFixed(2);
+  const fmtM=v=>v>0?(v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):'';
+  $('mepc').value=fmtM(parseFloat(p.valor_cliente||0));
+  $('meph').value=fmtM(parseFloat(p.valor_honorario||0));
   // Tenta achar o percentual do recebimento vinculado
   const rec=REC.find(r=>r.id==p.recebimento_id);
   $('mepp').value=rec?.fee_percent||30;
@@ -826,7 +827,8 @@ function abreMEP(pid){
 function recalcEP(){
   const vc=moneyToFloat($('mepc')),fp=parseFloat($('mepp').value)||30,fd=moneyToFloat($('mepfd'));
   const hon=Math.max(0,vc*(fp/100)-fd);
-  $('meph').value=hon.toFixed(2);
+  const fmtM=v=>v>0?(v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):'';
+  $('meph').value=fmtM(hon);
 }
 async function salvaEP(){
   const data=$('mepd').value,hon=moneyToFloat($('meph')),vc=moneyToFloat($('mepc'));
@@ -851,9 +853,9 @@ async function removeRec(rid){
 function resetFrm(){
   $('fbcli').value='';$('fbres').style.display='none';
   $('fca').style.display='block';$('fcs').style.display='none';
-  $('fvc').value='';$('fnp').value='2';$('ffp').value='30';$('ffd').value='0';
+  $('fvc').value='';$('fnp').value='2';$('ffp').value='30';$('ffd').value='';
   $('find').checked=false;$('iarea').style.display='none';
-  $('findnm').value='';$('findvl').value='200';$('fnotas').value='';
+  $('findnm').value='';$('findvl').value='200,00';$('fnotas').value='';
   setTipo('i');recalc();
 }
 function buscaCli(){
@@ -880,7 +882,7 @@ function setTipo(t){
   $('sec-parcelas').style.display=t==='p'?'block':'none';
   if(t==='i')$('fnp').value='1';geraParcs();
 }
-function togInd(){$('iarea').style.display=$('find').checked?'block':'none';recalc();}
+function togInd(){$('iarea').style.display=$('find').checked?'block':'none';if($('find').checked&&!$('findvl').value){$('findvl').value='200,00';}recalc();}
 function recalc(){
   const vc=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30,fd=moneyToFloat($('ffd'));
   const br=vc*(fp/100),liq=Math.max(0,br-fd);
