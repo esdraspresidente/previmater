@@ -295,40 +295,35 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
 </style>
 <script>
 function moneyToFloat(input){
-  if(!input) return 0;
+  if(!input)return 0;
   const v=(input.value||'').replace(/\./g,'').replace(',','.');
   return parseFloat(v)||0;
 }
-function applyMoneyMask(input){
-  // Formata ao sair do campo (onblur) — não enquanto digita
-  let v=(input.value||'').trim();
-  if(!v){return;}
-  // Aceita tanto ponto quanto vírgula como separador decimal
-  // Se tem vírgula: trata como decimal BR (1.500,57 ou 32,57)
-  // Se não tem vírgula mas tem ponto: trata como decimal US (1500.57) ou milhar (1.500)
-  v=v.replace(/[^\d.,]/g,'');
-  const hasComma=v.includes(',');
-  const dotCount=(v.match(/\./g)||[]).length;
-  let num;
-  if(hasComma){
-    // Formato BR: pontos são milhar, vírgula é decimal
-    num=parseFloat(v.replace(/\./g,'').replace(',','.'));
-  } else if(dotCount===1){
-    // Único ponto: decimal US (ex: 32.57)
-    num=parseFloat(v);
-  } else {
-    // Sem separador decimal: valor inteiro em reais
-    num=parseFloat(v.replace(/\./g,''));
-  }
-  if(isNaN(num)||num===0){input.value='';return;}
-  const parts=num.toFixed(2).split('.');
-  parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  input.value=parts[0]+','+parts[1];
+function moneyMaskInput(input){
+  // Máscara estilo caixa eletrônico: dígitos entram pela direita, últimos 2 são centavos
+  // Exemplos: digitar "6" → "0,06" | "685" → "6,85" | "650000" → "6.500,00"
+  let d=(input.value||'').replace(/\D/g,'');
+  if(!d){input.value='';return;}
+  while(d.length<3)d='0'+d;
+  const cents=d.slice(-2);
+  let reais=d.slice(0,-2).replace(/^0+/,'')||'0';
+  reais=reais.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  input.value=reais+','+cents;
 }
-// formatação monetária: aplica máscara somente ao sair do campo (focusout), nunca durante digitação
+// applyMoneyMask mantido para compatibilidade com onblur existentes
+function applyMoneyMask(input){moneyMaskInput(input);}
 document.addEventListener('DOMContentLoaded',()=>{
-  document.body.addEventListener('focusout',e=>{
-    if(e.target.dataset&&e.target.dataset.money!==undefined) applyMoneyMask(e.target);
+  // Ao entrar no campo: seleciona tudo para digitação limpa
+  document.body.addEventListener('focusin',e=>{
+    if(e.target.dataset&&e.target.dataset.money!==undefined)try{e.target.select();}catch(_){}
+  });
+  // A cada dígito: aplica máscara + recalcula honorários
+  document.body.addEventListener('input',e=>{
+    if(e.target.dataset&&e.target.dataset.money!==undefined){
+      moneyMaskInput(e.target);
+      if(['fvc','ffd','findvl'].includes(e.target.id))recalc();
+      if(['mepc','mepfd'].includes(e.target.id))recalcEP();
+    }
   });
 });
 </script>
@@ -511,10 +506,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" placeholder="0,00" data-money="" inputmode="decimal" oninput="recalcEP()" onblur="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" placeholder="0,00" data-money="" inputmode="decimal" onblur="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
     <div class="fg" style="margin-bottom:11px">
       <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
-      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" value="0" data-money="" inputmode="decimal" oninput="recalcEP()" onblur="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" value="0" data-money="" inputmode="decimal" onblur="recalcEP()"/></div>
     </div>
     <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="text" id="meph" data-money="" inputmode="decimal" onblur="applyMoneyMask(this)"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
