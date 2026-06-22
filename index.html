@@ -919,7 +919,8 @@ function geraParcs(){
       fParcs.push({data:fISO(dt),cli:cli,fd:fd});
     }
   }
-  recalcHonorarios();
+  renderParcsForm();   // cria o DOM das parcelas
+  recalcHonorarios(); // preenche os valores calculados
 }
 function recalcHonorarios(){
   const n=fParcs.length,vcTotal=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30;
