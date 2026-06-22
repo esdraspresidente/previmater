@@ -293,6 +293,24 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
 .sri:hover{background:var(--teal-l);}
 .csel{background:var(--teal-l);border:1.5px solid var(--teal-m);border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;}
 </style>
+<script>
+// Máscara monetária — aplica em todos os inputs com data-money
+function applyMoneyMask(input){
+  let v=input.value.replace(/\D/g,'');
+  if(!v){input.value='';return;}
+  v=(parseInt(v)/100).toFixed(2);
+  input.value=v.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+function moneyToFloat(input){
+  const v=(input.value||'').replace(/\./g,'').replace(',','.');
+  return parseFloat(v)||0;
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.body.addEventListener('input',e=>{
+    if(e.target.dataset.money!==undefined) applyMoneyMask(e.target);
+  });
+});
+</script>
 </head>
 <body>
 
@@ -404,11 +422,11 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
         <div class="fs">
           <div class="fst">3. Valores</div>
           <div class="fg" style="grid-template-columns:2fr 1fr 1fr" id="fg-valores">
-            <div class="fld"><label>Valor que o Cliente Recebe (R$) *</label><input type="number" id="fvc" placeholder="0,00" step="0.01" oninput="recalc()"/></div>
+            <div class="fld"><label>Valor que o Cliente Recebe (R$) *</label><input type="number" id="fvc" data-money="" placeholder="0,00" step="0.01" oninput="recalc()"/></div>
             <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option></select></div>
             <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="ffp" value="30" step="0.5" oninput="recalc()"/></div>
           </div>
-          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="number" id="ffd" value="0" step="0.01" oninput="recalc()"/></div>
+          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="number" id="ffd" data-money="" value="0" step="0.01" oninput="recalc()"/></div>
           <div class="cb" id="cb-resumo" style="display:none"><div class="cr2"><span>Honorários Brutos</span><span id="cbruto" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Desconto</span><span id="cdesc" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq">R$ 0,00</span></div></div>
           <div class="cb" id="cb-resumo-simples" style="margin-top:13px"><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq-s">R$ 0,00</span></div></div>
           <div class="hr"></div>
@@ -417,11 +435,11 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="find" onchange="togInd()" style="width:auto"/><span style="font-size:12px;color:var(--text2);font-weight:600">Tem indicação?</span></label>
           </div>
           <div id="iarea" style="display:none">
-            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="number" id="findvl" value="200" step="0.01" oninput="recalc()"/></div></div>
+            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="number" id="findvl" data-money="" value="200" step="0.01" oninput="recalc()"/></div></div>
             <div class="cb" style="margin-top:8px"><div class="cr2"><span>Honorários Líquidos</span><span id="cliq2" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Comissão Indicação</span><span id="ccom" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Sobra Líquida</span><span id="csob">R$ 0,00</span></div></div>
           </div>
         </div>
-        <div class="fs">
+        <div class="fs" id="sec-parcelas">
           <div class="fst">4. Detalhes das Parcelas</div>
           <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Informe a data e os valores de cada parcela. Pode ajustar individualmente.</p>
           <div id="parcsform"></div>
@@ -472,12 +490,12 @@ html,body{min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00" data-money="" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
     <div class="fg" style="margin-bottom:11px">
       <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
-      <div class="fld"><label>Desconto (R$)</label><input type="number" id="mepfd" step="0.01" value="0" oninput="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="number" id="mepfd" step="0.01" value="0" data-money="" oninput="recalcEP()"/></div>
     </div>
-    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
+    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01" data-money=""/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
   </div>
 </div>
@@ -717,7 +735,7 @@ function renderLista(){
         ${s==='atrasado'?`<button class="bic bp2" title="Inadimplente" onclick="marcaInad('${p.id}')">⚑</button>`:''}
         <button class="bic" style="color:var(--gray)" title="Cancelar" onclick="cancelaP('${p.id}')">✕</button>`:
         s==='recebido'?`<span style="font-size:10px;color:var(--text3)">${p.data_pagamento?fD(p.data_pagamento):''}</span>`:'';
-      return`<div class="pi"><div class="pin">${p.num_parcela}/${p.total_parcelas}</div><div class="pii"><div class="pid">${fD(p.data_vencimento)}</div><div class="piv">${R(p.valor_honorario)}${vc}</div></div><div class="pir">${bdg(s)}<div class="piac">${ac}</div><button class="bic" title="Editar" onclick="abreMEP('${p.id}')">✎</button></div></div>`;
+      return`<div class="pi"><div class="pin">${p.num_parcela}/${p.total_parcelas}</div><div class="pii"><div class="pid">${fD(p.data_vencimento)}</div><div class="piv">${R(p.valor_honorario)}${vc}${(()=>{if(!p.valor_cliente||parseFloat(p.valor_cliente)<=0)return'';const descEsp=parseFloat(p.valor_cliente||0)*0.3-parseFloat(p.valor_honorario||0);return descEsp>0.01?` <span style="color:var(--red);font-size:10px">(desc. ${R(descEsp)})</span>`:'';})()} </div></div><div class="pir">${bdg(s)}<div class="piac">${ac}</div><button class="bic" title="Editar" onclick="abreMEP('${p.id}')">✎</button></div></div>`;
     }).join('');
     return`<div class="ccard"><div class="cch" onclick="togCC('${key}')">
       <div class="av" style="background:${avC(c.nm)};width:38px;height:38px;font-size:14px">${avL(c.nm)}</div>
@@ -803,12 +821,12 @@ function abreMEP(pid){
   $('movo').classList.remove('h');$('mepar').classList.remove('h');
 }
 function recalcEP(){
-  const vc=parseFloat($('mepc').value)||0,fp=parseFloat($('mepp').value)||30,fd=parseFloat($('mepfd').value)||0;
+  const vc=moneyToFloat($('mepc')),fp=parseFloat($('mepp').value)||30,fd=moneyToFloat($('mepfd'));
   const hon=Math.max(0,vc*(fp/100)-fd);
   $('meph').value=hon.toFixed(2);
 }
 async function salvaEP(){
-  const data=$('mepd').value,hon=parseFloat($('meph').value)||0,vc=parseFloat($('mepc').value)||0;
+  const data=$('mepd').value,hon=moneyToFloat($('meph')),vc=moneyToFloat($('mepc'));
   if(!data){toast('Informe a data.','er');return;}
   const btn=document.querySelector('#mepar .btnp');btn.textContent='Salvando...';btn.disabled=true;
   const{error}=await SB.from('pm_parcelas').update({data_vencimento:data,valor_honorario:hon,valor_cliente:vc}).eq('id',mparcId);
@@ -856,15 +874,16 @@ function setTipo(t){
   $('ffd-wrap').style.display=t==='i'?'block':'none';
   $('cb-resumo').style.display=t==='i'?'block':'none';
   $('cb-resumo-simples').style.display=t==='p'?'block':'none';
+  $('sec-parcelas').style.display=t==='p'?'block':'none';
   if(t==='i')$('fnp').value='1';geraParcs();
 }
 function togInd(){$('iarea').style.display=$('find').checked?'block':'none';recalc();}
 function recalc(){
-  const vc=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30,fd=parseFloat($('ffd')?.value)||0;
+  const vc=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30,fd=moneyToFloat($('ffd'));
   const br=vc*(fp/100),liq=Math.max(0,br-fd);
   $('cbruto').textContent=R(br);$('cdesc').textContent=`- ${R(fd)}`;$('cliq').textContent=R(liq);
   $('cliq-s').textContent=R(br);
-  const ind=parseFloat($('findvl')?.value)||0;
+  const ind=moneyToFloat($('findvl'));
   $('cliq2').textContent=R(liq);$('ccom').textContent=`- ${R(ind)}`;$('csob').textContent=R(Math.max(0,liq-ind));
   if(fParcs.length){recalcHonorarios();}else{geraParcs();}
 }
@@ -885,7 +904,7 @@ function geraParcs(){
   recalcHonorarios();
 }
 function recalcHonorarios(){
-  const n=fParcs.length,vcTotal=parseFloat($('fvc')?.value)||0,fp=parseFloat($('ffp')?.value)||30;
+  const n=fParcs.length,vcTotal=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30;
   // Última parcela = resto do total
   if(n>1){
     const somaAnteriores=fParcs.slice(0,n-1).reduce((s,p)=>s+(parseFloat(p.cli)||0),0);
@@ -907,8 +926,8 @@ function renderParcsForm(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div class="pfn">${i+1}</div><div style="font-size:13px;font-weight:700">Parcela ${i+1}/${n}</div>${i===0?`<span class="ti">Valor do INSS</span>`:`<span class="te">Estimativa</span>`}</div>
     <div class="fg">
       <div class="fld"><label>Data de Vencimento</label><input type="date" id="fpd${i}" value="${p.data}" onchange="upP(${i},'d',this.value)"/></div>
-      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="fpc${i}" value="${(p.cli||0).toFixed(2)}" step="0.01" placeholder="Quanto o INSS paga ao cliente" onchange="upP(${i},'c',this.value)" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
-      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="number" id="fpfd${i}" value="${(p.fd||0)||''}" step="0.01" placeholder="0,00" onchange="upP(${i},'fd',this.value)"/></div>
+      <div class="fld"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="fpc${i}" value="${(p.cli||0).toFixed(2)}" step="0.01" placeholder="Quanto o INSS paga ao cliente" data-money="" oninput="upP(${i},'c',moneyToFloat(this))" onchange="upP(${i},'c',moneyToFloat(this))" ${i===n-1&&n>1?'disabled style="opacity:.6"':''}/>${i===n-1&&n>1?`<span style="font-size:10px;color:var(--text3)">Calculado automaticamente (resto do total)</span>`:''}</div>
+      <div class="fld"><label>Desconto Honorário (R$) <span style="color:var(--text3);font-weight:400">— opcional</span></label><input type="number" id="fpfd${i}" value="${(p.fd||0)||''}" step="0.01" placeholder="0,00" data-money="" oninput="upP(${i},'fd',moneyToFloat(this))" onchange="upP(${i},'fd',moneyToFloat(this))"/></div>
       <div class="fld"><label>Valor Honorário (R$)</label><input type="number" id="fph${i}" value="${p.hon.toFixed(2)}" step="0.01" onchange="upP(${i},'h',this.value)"/><span style="font-size:10px;color:var(--text3)">${(parseFloat($('ffp').value)||30)}% do valor do cliente${p.fd?` − ${R(p.fd)}`:''}</span></div>
     </div></div>`).join('');
 }
@@ -935,11 +954,11 @@ function upP(i,c,v){
 }
 async function submitRec(){
   if(!fCliId){toast('Selecione um cliente.','er');return;}
-  const vc=parseFloat($('fvc').value)||0;if(!vc){toast('Informe o valor do cliente.','er');return;}
+  const vc=moneyToFloat($('fvc'));if(!vc){toast('Informe o valor do cliente.','er');return;}
   const cli=CLI.find(c=>c.id==fCliId);if(!cli){toast('Cliente não encontrado.','er');return;}
-  const fp=parseFloat($('ffp').value)||30,fd=parseFloat($('ffd').value)||0;
+  const fp=parseFloat($('ffp').value)||30,fd=moneyToFloat($('ffd'));
   const feeBr=vc*(fp/100),feeLiq=Math.max(0,feeBr-fd);
-  const temInd=$('find').checked,indNm=temInd?$('findnm').value:'',indVl=temInd?parseFloat($('findvl').value)||0:0;
+  const temInd=$('find').checked,indNm=temInd?$('findnm').value:'',indVl=temInd?moneyToFloat($('findvl')):0;
   const n=parseInt($('fnp').value)||1;
   const btn=$('fsubmit');btn.textContent='Salvando...';btn.disabled=true;
   const rd={id:Date.now(),cliente_id:fCliId,cliente_nome:cli.nome,valor_cliente:vc,num_parcelas:n,fee_percent:fp,fee_bruto:feeBr,fee_desconto:fd,fee_liquido:feeLiq,indicador_nome:indNm||null,indicador_comissao_tipo:temInd?'fixed':null,indicador_comissao_valor:indVl,indicador_comissao_total:indVl,sobra_liquida:Math.max(0,feeLiq-indVl),metodo_pagamento:'PIX',notas:$('fnotas').value||null};
