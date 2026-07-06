@@ -911,7 +911,7 @@ function geraParcs(){
       let dt;
       if(old[0]?.data){dt=new Date(old[0].data+'T12:00:00');dt.setMonth(dt.getMonth()+i);}
       else{dt=new Date(hoje);dt.setMonth(dt.getMonth()+i);}
-      const cli=old[i]?.cli||0;
+      const cli=old[i]?.cli||(i>0&&i<n-1?1500:0);
       const fd=old[i]?.fd||0;
       fParcs.push({data:fISO(dt),cli:cli,fd:fd});
     }
@@ -952,8 +952,12 @@ function upP(i,c,v){
     // Cascata: se for a parcela 0, recalcula as datas seguintes como +1,+2,... meses
     if(i===0){
       const base=new Date(v+'T12:00:00');
-      for(let j=1;j<fParcs.length;j++){const dt=new Date(base);dt.setMonth(dt.getMonth()+j);fParcs[j].data=fISO(dt);}
-      renderParcsForm();
+      for(let j=1;j<fParcs.length;j++){
+        const dt=new Date(base);dt.setMonth(dt.getMonth()+j);
+        fParcs[j].data=fISO(dt);
+        const el=document.getElementById('fpd'+j);
+        if(el)el.value=fParcs[j].data;
+      }
     }
   }
   if(c==='h')fParcs[i].hon=parseFloat(v)||0;
