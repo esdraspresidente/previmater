@@ -889,7 +889,7 @@ function setTipo(t){
   $('ffd-wrap').style.display=t==='i'?'block':'none';
   $('cb-resumo').style.display=t==='i'?'block':'none';
   $('cb-resumo-simples').style.display=t==='p'?'block':'none';
-  $('sec-parcelas').style.display=t==='p'?'block':'none';
+  $('sec-parcelas').style.display='block';
   if(t==='i')$('fnp').value='1';geraParcs();
 }
 function togInd(){$('iarea').style.display=$('find').checked?'block':'none';if($('find').checked&&!$('findvl').value){$('findvl').value='200';}recalc();}
