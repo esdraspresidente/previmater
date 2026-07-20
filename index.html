@@ -299,6 +299,10 @@ function moneyToFloat(el){
   const v=(el.value||'').replace(/\./g,'').replace(',','.');
   return parseFloat(v)||0;
 }
+function floatToMoney(v){
+  v=parseFloat(v)||0;
+  return v>0?v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.'):'';
+}
 function moneyMaskInput(el){
   let d=(el.value||'').replace(/\D/g,'');
   if(!d){el.value='';return;}
@@ -439,7 +443,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <div class="fld" id="fcampoparc"><label>Número de Parcelas</label><select id="fnp" onchange="geraParcs()"><option value="1">1 parcela</option><option value="2" selected>2 parcelas</option><option value="3">3 parcelas</option><option value="4">4 parcelas</option><option value="5">5 parcelas</option></select></div>
             <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="ffp" value="30" step="0.5" oninput="recalc()"/></div>
           </div>
-          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="number" id="ffd" value="0" step="0.01" oninput="recalc()"/></div>
+          <div class="fld" id="ffd-wrap" style="display:none;margin-top:13px"><label>Desconto Honorários (R$)</label><input type="text" id="ffd" data-money="" inputmode="decimal" placeholder="0,00" onchange="recalc()"/></div>
           <div class="cb" id="cb-resumo" style="display:none"><div class="cr2"><span>Honorários Brutos</span><span id="cbruto" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Desconto</span><span id="cdesc" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq">R$ 0,00</span></div></div>
           <div class="cb" id="cb-resumo-simples" style="margin-top:13px"><div class="cr2 tot"><span>Honorários Líquidos</span><span id="cliq-s">R$ 0,00</span></div></div>
           <div class="hr"></div>
@@ -448,7 +452,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="find" onchange="togInd()" style="width:auto"/><span style="font-size:12px;color:var(--text2);font-weight:600">Tem indicação?</span></label>
           </div>
           <div id="iarea" style="display:none">
-            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="number" id="findvl" value="200" step="0.01" oninput="recalc()"/></div></div>
+            <div class="fg"><div class="fld"><label>Nome do Indicador</label><input type="text" id="findnm" placeholder="Nome de quem indicou"/></div><div class="fld"><label>Comissão (R$)</label><input type="text" id="findvl" data-money="" inputmode="decimal" placeholder="0,00" value="200,00" onchange="recalc()"/></div></div>
             <div class="cb" style="margin-top:8px"><div class="cr2"><span>Honorários Líquidos</span><span id="cliq2" style="font-weight:700">R$ 0,00</span></div><div class="cr2"><span>Comissão Indicação</span><span id="ccom" style="color:var(--red)">- R$ 0,00</span></div><div class="cr2 tot"><span>Sobra Líquida</span><span id="csob">R$ 0,00</span></div></div>
           </div>
         </div>
@@ -503,12 +507,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     <div class="mbt" id="mept">Editar Parcela</div>
     <div class="mbs" id="meps"></div>
     <div class="fld" style="margin-bottom:11px"><label>Data de Vencimento</label><input type="date" id="mepd"/></div>
-    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="number" id="mepc" step="0.01" placeholder="0,00" oninput="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
+    <div class="fld" style="margin-bottom:11px"><label>Valor que o Cliente Recebe (R$)</label><input type="text" id="mepc" data-money="" inputmode="decimal" placeholder="0,00" onchange="recalcEP()"/><span style="font-size:10px;color:var(--text3)">Quanto o INSS paga ao cliente nesta parcela</span></div>
     <div class="fg" style="margin-bottom:11px">
-      <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" oninput="recalcEP()"/></div>
-      <div class="fld"><label>Desconto (R$)</label><input type="number" id="mepfd" step="0.01" value="0" oninput="recalcEP()"/></div>
+      <div class="fld"><label>Percentual Honorários (%)</label><input type="number" id="mepp" step="0.5" value="30" onchange="recalcEP()"/></div>
+      <div class="fld"><label>Desconto (R$)</label><input type="text" id="mepfd" data-money="" inputmode="decimal" placeholder="0,00" onchange="recalcEP()"/></div>
     </div>
-    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="number" id="meph" step="0.01"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
+    <div class="fld" style="margin-bottom:18px"><label>Valor Honorário (R$)</label><input type="text" id="meph" data-money="" inputmode="decimal" placeholder="0,00"/><span style="font-size:10px;color:var(--text3)">Calculado automaticamente — pode ajustar manualmente</span></div>
     <div class="brow"><button class="btn btns" onclick="fechaM()">Cancelar</button><button class="btn btnp" onclick="salvaEP()">Salvar</button></div>
   </div>
 </div>
@@ -825,23 +829,21 @@ function abreMEP(pid){
   const p=PARC.find(x=>x.id==pid);if(!p)return;
   mparcId=pid;$('mept').textContent=`Editar Parcela ${p.num_parcela}/${p.total_parcelas}`;
   $('meps').textContent=p.cliente_nome;$('mepd').value=p.data_vencimento;
-  const fmtM=v=>v>0?(v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):'';
-  $('mepc').value=parseFloat(p.valor_cliente||0).toFixed(2);
-  $('meph').value=parseFloat(p.valor_honorario||0).toFixed(2);
+  $('mepc').value=floatToMoney(p.valor_cliente);
+  $('meph').value=floatToMoney(p.valor_honorario);
   // Tenta achar o percentual do recebimento vinculado
   const rec=REC.find(r=>r.id==p.recebimento_id);
   $('mepp').value=rec?.fee_percent||30;
-  $('mepfd').value=0;
+  $('mepfd').value='';
   $('movo').classList.remove('h');$('mepar').classList.remove('h');
 }
 function recalcEP(){
-  const vc=parseFloat($('mepc').value)||0,fp=parseFloat($('mepp').value)||30,fd=parseFloat($('mepfd').value)||0;
+  const vc=moneyToFloat($('mepc')),fp=parseFloat($('mepp').value)||30,fd=moneyToFloat($('mepfd'));
   const hon=Math.max(0,vc*(fp/100)-fd);
-  const fmtM=v=>v>0?(v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')):'';
-  $('meph').value=hon.toFixed(2);
+  $('meph').value=floatToMoney(hon);
 }
 async function salvaEP(){
-  const data=$('mepd').value,hon=parseFloat($('meph').value)||0,vc=parseFloat($('mepc').value)||0;
+  const data=$('mepd').value,hon=moneyToFloat($('meph')),vc=moneyToFloat($('mepc'));
   if(!data){toast('Informe a data.','er');return;}
   const btn=document.querySelector('#mepar .btnp');btn.textContent='Salvando...';btn.disabled=true;
   const{error}=await SB.from('pm_parcelas').update({data_vencimento:data,valor_honorario:hon,valor_cliente:vc}).eq('id',mparcId);
@@ -863,9 +865,9 @@ async function removeRec(rid){
 function resetFrm(){
   $('fbcli').value='';$('fbres').style.display='none';
   $('fca').style.display='block';$('fcs').style.display='none';
-  $('fvc').value='';$('fnp').value='2';$('ffp').value='30';$('ffd').value='0';
+  $('fvc').value='';$('fnp').value='2';$('ffp').value='30';$('ffd').value='';
   $('find').checked=false;$('iarea').style.display='none';
-  $('findnm').value='';$('findvl').value='200';$('fnotas').value='';
+  $('findnm').value='';$('findvl').value='200,00';$('fnotas').value='';
   setTipo('i');recalc();
 }
 function buscaCli(){
@@ -892,13 +894,13 @@ function setTipo(t){
   $('sec-parcelas').style.display='block';
   if(t==='i')$('fnp').value='1';geraParcs();
 }
-function togInd(){$('iarea').style.display=$('find').checked?'block':'none';if($('find').checked&&!$('findvl').value){$('findvl').value='200';}recalc();}
+function togInd(){$('iarea').style.display=$('find').checked?'block':'none';if($('find').checked&&!$('findvl').value){$('findvl').value='200,00';}recalc();}
 function recalc(){
-  const vc=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30,fd=parseFloat($('ffd')?.value)||0;
+  const vc=moneyToFloat($('fvc')),fp=parseFloat($('ffp')?.value)||30,fd=moneyToFloat($('ffd'));
   const br=vc*(fp/100),liq=Math.max(0,br-fd);
   $('cbruto').textContent=R(br);$('cdesc').textContent=`- ${R(fd)}`;$('cliq').textContent=R(liq);
   $('cliq-s').textContent=R(br);
-  const ind=parseFloat($('findvl')?.value)||0;
+  const ind=moneyToFloat($('findvl'));
   $('cliq2').textContent=R(liq);$('ccom').textContent=`- ${R(ind)}`;$('csob').textContent=R(Math.max(0,liq-ind));
   if(fParcs.length){recalcHonorarios();}else{geraParcs();}
 }
@@ -975,9 +977,9 @@ async function submitRec(){
   if(!fCliId){toast('Selecione um cliente.','er');return;}
   const vc=moneyToFloat($('fvc'));if(!vc){toast('Informe o valor do cliente.','er');return;}
   const cli=CLI.find(c=>c.id==fCliId);if(!cli){toast('Cliente não encontrado.','er');return;}
-  const fp=parseFloat($('ffp').value)||30,fd=parseFloat($('ffd').value)||0;
+  const fp=parseFloat($('ffp').value)||30,fd=moneyToFloat($('ffd'));
   const feeBr=vc*(fp/100),feeLiq=Math.max(0,feeBr-fd);
-  const temInd=$('find').checked,indNm=temInd?$('findnm').value:'',indVl=temInd?parseFloat($('findvl').value)||0:0;
+  const temInd=$('find').checked,indNm=temInd?$('findnm').value:'',indVl=temInd?moneyToFloat($('findvl')):0;
   const n=parseInt($('fnp').value)||1;
   const btn=$('fsubmit');btn.textContent='Salvando...';btn.disabled=true;
   const rd={id:Date.now(),cliente_id:fCliId,cliente_nome:cli.nome,valor_cliente:vc,num_parcelas:n,fee_percent:fp,fee_bruto:feeBr,fee_desconto:fd,fee_liquido:feeLiq,indicador_nome:indNm||null,indicador_comissao_tipo:temInd?'fixed':null,indicador_comissao_valor:indVl,indicador_comissao_total:indVl,sobra_liquida:Math.max(0,feeLiq-indVl),metodo_pagamento:'PIX',notas:$('fnotas').value||null};
