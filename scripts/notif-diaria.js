@@ -80,13 +80,13 @@ function emailHtml(titulo, subtitulo, valorLabel, valor, valorColor, cards) {
     + titulo + cards
     + '</div>'
     + '<div style="text-align:center;padding:16px">'
-    + '<a href="https://esdraspresidente.github.io/previmater" style="display:inline-block;background:linear-gradient(135deg,#0A9396,#00B4D8);color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Abrir PreviMater &rarr;</a>'
-    + '<div style="font-size:11px;color:#7FA8A8;margin-top:12px">PreviMater &middot; Gestão de Recebimentos</div>'
+    + '<a href="https://esdraspresidente.github.io/previmater-crm" style="display:inline-block;background:linear-gradient(135deg,#0A9396,#00B4D8);color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Abrir PreviMater &rarr;</a>'
+    + '<div style="font-size:11px;color:#7FA8A8;margin-top:12px">PreviMater CRM &middot; Financeiro</div>'
     + '</div></div></body></html>';
 }
 
 async function buscaParcelas(data) {
-  const url = SB_URL + '/rest/v1/pm_parcelas?select=*,pm_clientes(whatsapp,trello_url)&data_vencimento=eq.' + data + '&status=neq.cancelado&status=neq.recebido&order=cliente_nome.asc';
+  const url = SB_URL + '/rest/v1/pm_parcelas?select=*,pm_clientes(whatsapp,trello_url)&data_vencimento=eq.' + data + '&status=neq.cancelado&status=neq.recebido&status=neq.inadimplente&order=cliente_nome.asc';
   const r = await req(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
   return r.json();
 }
